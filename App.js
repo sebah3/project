@@ -5,7 +5,6 @@ import "./App.css";
 const LandingPage = ({ onLogin }) => {
   return (
     <div className="landing-page">
-      {/* Added Orbs for visual effect */}
       <div className="glow-orb orb-1"></div>
       <div className="glow-orb orb-2"></div>
 
@@ -72,7 +71,7 @@ const LandingPage = ({ onLogin }) => {
         </div>
       </section>
 
-      <section id="contact" className="contact-section" style={{paddingBottom: "60px"}}>
+      <section id="contact" className="contact-section">
         <div className="section-header">
           <h2>Contact Our Developers</h2>
           <p>Get support from our expert engineering team.</p>
@@ -131,16 +130,14 @@ const Sparkline = ({ history, width = 200, height = 40 }) => {
     const w = canvas.width;
     const h = canvas.height;
     
-    // Fix for High DPI displays
     const dpr = window.devicePixelRatio || 1;
-    // Reset transform before clearing to avoid accumulation
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, w, h);
     
     if (!history || history.length < 2) return;
 
     const minVal = Math.min(...history);
-    const maxVal = Math.max(...history, minVal + 50); // Prevent division by zero
+    const maxVal = Math.max(...history, minVal + 50);
     const range = maxVal - minVal;
     const stepX = w / (history.length - 1);
 
@@ -167,7 +164,6 @@ const Sparkline = ({ history, width = 200, height = 40 }) => {
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Close path for gradient fill
     ctx.lineTo(w, h);
     ctx.lineTo(0, h);
     ctx.closePath();
@@ -316,6 +312,14 @@ function App() {
     const [url, setUrl] = useState("");
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [activeTab, setActiveTab] = useState("monitoring");
+    
+    // NEW: Search & Filter Functionality
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterStatus, setFilterStatus] = useState("all"); // all, up, down
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+    // NEW: Status Pages Functionality
+    const [customPages, setCustomPages] = useState([]);
 
     const [data, setData] = useState({
       targets: [],
@@ -384,17 +388,36 @@ function App() {
     const downCount = data.targets.length - upCount;
     const overallUptime = data.targets.length > 0 ? ((upCount / data.targets.length) * 100).toFixed(2) : 0;
 
+    // --- Filter Logic ---
+    const getFilteredTargets = () => {
+      return data.targets.filter((target) => {
+        // 1. Search Logic
+        const matchesSearch = target.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // 2. Filter Logic
+        const status = data.status_messages[target] || "";
+        const isDown = status.includes("CRITICAL") || status.includes("ERROR") || status.includes("TIMEOUT") || status.includes("REFUSED");
+        
+        let matchesFilter = true;
+        if (filterStatus === "up") matchesFilter = !isDown;
+        if (filterStatus === "down") matchesFilter = isDown;
+
+        return matchesSearch && matchesFilter;
+      });
+    };
+
     // --- Render Content Based on Tab ---
     const renderContent = () => {
       if (activeTab === "monitoring") {
+        const displayTargets = getFilteredTargets();
         return (
           <div className="up-monitors-list">
-            {data.targets.length === 0 ? (
+            {displayTargets.length === 0 ? (
               <div className="up-empty-state">
-                <p>No monitors running. Add a URL to start tracking.</p>
+                <p>No monitors found matching your criteria.</p>
               </div>
             ) : (
-              data.targets.map((target) => {
+              displayTargets.map((target) => {
                 const latency = data.current_latencies[target] || 0;
                 const status = data.status_messages[target] || "Idle";
                 const isDown = status.includes("CRITICAL") || status.includes("ERROR") || status.includes("TIMEOUT") || status.includes("REFUSED");
@@ -473,14 +496,26 @@ function App() {
       } else if (activeTab === "status_pages") {
         return (
           <div className="up-monitors-list">
-            <div className="up-widget" style={{marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+             <div className="up-widget" style={{marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
               <div>
                 <h4 style={{margin: 0, fontSize: "1.2rem"}}>Status pages.</h4>
                 <p style={{margin: "5px 0 0", color: "var(--text-muted)"}}>Publicly accessible status pages for your monitors.</p>
               </div>
-              <button className="up-btn-blue" style={{width: "auto", padding: "8px 16px"}}>+ Create Status page</button>
+              <button 
+                className="up-btn-blue" 
+                style={{width: "auto", padding: "8px 16px"}}
+                onClick={() => {
+                  const name = prompt("Enter Status Page Name:", "My Custom Status");
+                  if(name) {
+                    setCustomPages([...customPages, { name, date: new Date().toLocaleDateString() }]);
+                  }
+                }}
+              >
+                + Create Status page
+              </button>
             </div>
 
+            {/* Default Page */}
             <div className="up-monitor-row">
               <div className="up-monitor-info">
                 <div className="up-url">Status page</div>
@@ -495,6 +530,24 @@ function App() {
                  <button className="up-btn-blue" style={{width: "auto", padding: "6px 12px", background: "var(--bg-panel-hover)", border: "1px solid var(--border-color)"}}>Delete</button>
               </div>
             </div>
+
+            {/* Custom Pages List */}
+            {customPages.map((page, idx) => (
+              <div key={idx} className="up-monitor-row">
+                <div className="up-monitor-info">
+                  <div className="up-url">{page.name}</div>
+                  <div className="up-type">Custom</div>
+                </div>
+                <div className="up-monitor-uptime">
+                  <span style={{color: "white"}}>Draft</span>
+                  <span className="time-ago">{page.date}</span>
+                </div>
+                <div style={{display: "flex", gap: "10px"}}>
+                   <button className="up-btn-blue" style={{width: "auto", padding: "6px 12px", background: "var(--bg-panel-hover)", border: "1px solid var(--border-color)"}}>Edit</button>
+                   <button className="up-btn-red" style={{width: "auto", padding: "6px 12px", background: "var(--bg-panel-hover)", border: "1px solid var(--border-color)"}}>Delete</button>
+                </div>
+              </div>
+            ))}
           </div>
         );
       } else if (activeTab === "settings") {
@@ -530,6 +583,8 @@ function App() {
 
     return (
       <div className="up-dashboard">
+        
+        {/* 1. LEFT SIDEBAR */}
         <aside className="up-sidebar">
           <div className="up-sidebar-header">
             <h2>ServerPulse</h2>
@@ -584,22 +639,59 @@ function App() {
           </div>
         </aside>
 
+        {/* 2. MAIN CONTENT (SWITCHES BASED ON TAB) */}
         <main className="up-main">
           <header className="up-header">
             <h3 style={{textTransform: "capitalize"}}>{activeTab.replace("_", " ")} ({data.targets.length})</h3>
             <div className="up-actions">
               {activeTab === "monitoring" && (
                 <>
-                  <input type="text" placeholder="Search monitors..." className="up-search" disabled={true} />
-                  <button className="up-filter-btn" disabled>Filter ▼</button>
+                  <input 
+                    type="text" 
+                    placeholder="Search monitors..." 
+                    className="up-search" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <div style={{ position: "relative" }}>
+                    <button 
+                      className="up-filter-btn" 
+                      onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                    >
+                      {filterStatus === "all" ? "Filter" : filterStatus} ▼
+                    </button>
+                    {/* Filter Dropdown Menu */}
+                                        {/* Filter Dropdown Menu */}
+                    {showFilterDropdown && (
+                      <div style={{
+                        position: "absolute", 
+                        top: "100%", 
+                        right: 0, 
+                        marginTop: "5px", 
+                        background: "var(--bg-panel)", 
+                        border: "1px solid var(--border-color)", 
+                        borderRadius: "6px", 
+                        width: "120px", // Increased width slightly
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.8)",
+                        zIndex: 9999, // <--- CHANGED: Set to 9999 to ensure it sits on top
+                        color: "var(--text-main)"
+                      }}>
+                        <div onClick={() => { setFilterStatus("all"); setShowFilterDropdown(false); }} style={{padding: "8px 12px", cursor: "pointer", color: filterStatus === "all" ? "var(--accent-blue)" : "var(--text-main)", fontSize: "0.9rem"}}>All</div>
+                        <div onClick={() => { setFilterStatus("up"); setShowFilterDropdown(false); }} style={{padding: "8px 12px", cursor: "pointer", color: filterStatus === "up" ? "var(--accent-blue)" : "var(--text-main)", fontSize: "0.9rem"}}>Up</div>
+                        <div onClick={() => { setFilterStatus("down"); setShowFilterDropdown(false); }} style={{padding: "8px 12px", cursor: "pointer", color: filterStatus === "down" ? "var(--accent-blue)" : "var(--text-main)", fontSize: "0.9rem"}}>Down</div>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
           </header>
 
+          {/* Content Switcher */}
           {renderContent()}
         </main>
 
+        {/* 3. RIGHT SIDEBAR (STATS) - Only visible on Monitoring Tab */}
         {activeTab === "monitoring" && (
           <aside className="up-right-panel">
             <div className="up-widget current-status">
@@ -646,6 +738,7 @@ function App() {
             </div>
           </aside>
         )}
+
       </div>
     );
   };
