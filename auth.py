@@ -47,8 +47,8 @@ def validate_password(password: str, username: str):
 # ---------------- Email Setup ----------------
 # FIX 3: Used os.getenv with your Gmail credentials as defaults
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME", "henonchare21@gmail.com"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "qgku ayjt cclj ofqr  "),
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME", "henonchare21@gmail.c),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
     MAIL_FROM=os.getenv("MAIL_FROM", "henonchare21@gmail.com"),
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
