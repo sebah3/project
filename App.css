@@ -132,7 +132,7 @@ body {
 .card h3 { color: white; margin: 0 0 10px; }
 .card p { color: var(--text-muted); font-size: 0.9rem; }
 
-/* ================= UPTIMEROBOT STYLE DASHBOARD (MODERN / GLASSMORPHISM) ================= */
+/* ================= UPTIMEROBOT STYLE DASHBOARD ================= */
 .up-dashboard {
   display: grid;
   grid-template-columns: 240px 1fr 280px;
@@ -257,10 +257,15 @@ body {
 .up-btn-red:hover { opacity: 0.9; transform: translateY(-1px); }
 
 /* --- Main Content --- */
+/* --- Main Content --- */
 .up-main {
   background: var(--bg-dark);
   padding: 20px 30px;
-  overflow-y: auto;
+  /* overflow: hidden removed previously */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
 }
 
 .up-header {
@@ -277,6 +282,9 @@ body {
   border-radius: 6px;
   padding: 16px 24px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0; /* Ensures header doesn't shrink */
+  position: relative;
+  z-index: 1000; /* <--- ADDED THIS: Forces header layer above the list */
 }
 
 .up-header h3 {
@@ -313,7 +321,14 @@ body {
 .up-filter-btn:hover:not(:disabled) { border-color: var(--text-muted); }
 .up-filter-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.up-monitors-list { display: flex; flex-direction: column; gap: 12px; }
+.up-monitors-list { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+  /* ADDED flex: 1 and overflow-y: auto to handle scrolling */
+  flex: 1;
+  overflow-y: auto; 
+}
 
 .up-empty-state {
   text-align: center;
